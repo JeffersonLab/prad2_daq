@@ -104,51 +104,6 @@ if __name__ == '__main__':
     dfm.loc[mask1, 'crate'] = np.digitize(dfm.loc[mask1, 'col'].values, LG1_BINS)
     dfm.loc[mask3, 'crate'] = np.digitize(dfm.loc[mask3, 'col'].values, LG3_BINS)
 
-    # transfer centeral point to matplotlib anchor point (lower left corner)
-    dfm.loc[:, 'anchor_x'] = dfm['x'] - dfm['size_x']/2.
-    dfm.loc[:, 'anchor_y'] = dfm['y'] - dfm['size_y']/2.
-
-    dfm.loc[:, 'anno'] = ''
-    if args.annotate_module:
-        dfm.loc[:, 'anno'] = dfm.loc[:, 'name'].str.strip('W')
-
-    # find the plot range
-    min_x = dfm['anchor_x'].min()
-    min_y = dfm['anchor_y'].min()
-    max_x = dfm['anchor_x'].max() + dfm['size_x'].max()
-    max_y = dfm['anchor_y'].max() + dfm['size_y'].max()
-
-    fig, ax = plt.subplots(figsize=(18, 16), dpi=160, gridspec_kw=dict(left=0.1, right=0.9, bottom=0.08, top=0.98))
-    ax.yaxis.set_visible(False)
-    ax.xaxis.set_visible(False)
-    ax.set_axis_off()
-    # colors for different boards
-    prop_cycle = plt.rcParams['axes.prop_cycle']
-    colors = prop_cycle.by_key()['color']
-
-    for _, m in dfm.iterrows():
-        fc = colors[m['crate']]
-        alpha = 0.8
-        rec = Rectangle(xy=m[['anchor_x', 'anchor_y']].values, width=m['size_x'], height=m['size_y'],
-                        fc=mcolors.to_rgba(fc, alpha),
-                        ec='black', lw=1.0)
-        ax.add_patch(rec)
-        # annotation
-        if not pd.isnull(m['anno']):
-            fs = ANNO_FS[0] if m['name'].startswith('W') else ANNO_FS[1]
-            rx, ry = rec.get_xy()
-            cx = rx + rec.get_width() / 2.0
-            cy = ry + rec.get_height() / 2.0
-            ax.annotate(m['anno'], (cx, cy), color='k', fontsize=fs, ha='center', va='center')
-
-    ax.set_xlim(min_x, max_x)
-    ax.set_ylim(min_y, max_y)
-    ax.tick_params(labelsize=26)
-    ax.set_xlabel('X (mm)', fontsize=28)
-    ax.set_ylabel('Y (mm)', fontsize=28)
-
-    # color bar position
-    fig.savefig(os.path.join(output_dir, 'hycal_daq_boundaries.png'))
 
     # run a neighbor check
     module_list = dfm[['name', 'x', 'y', 'size_x', 'size_y']].values
@@ -191,3 +146,51 @@ if __name__ == '__main__':
     data_cols = ['name', 'subgroup', 'row', 'col', 'crate', 'neighbor_crate']
     with open(os.path.join(args.database, 'hycal_daq_map.txt'), 'w') as fo:
         fo.write(dfm[data_cols].to_string(index=False))
+
+    # generate a plot showing the boundaries
+        # transfer centeral point to matplotlib anchor point (lower left corner)
+    dfm.loc[:, 'anchor_x'] = dfm['x'] - dfm['size_x']/2.
+    dfm.loc[:, 'anchor_y'] = dfm['y'] - dfm['size_y']/2.
+
+    dfm.loc[:, 'anno'] = ''
+    if args.annotate_module:
+        dfm.loc[:, 'anno'] = dfm.loc[:, 'name'].str.strip('W')
+
+    # find the plot range
+    min_x = dfm['anchor_x'].min()
+    min_y = dfm['anchor_y'].min()
+    max_x = dfm['anchor_x'].max() + dfm['size_x'].max()
+    max_y = dfm['anchor_y'].max() + dfm['size_y'].max()
+
+    fig, ax = plt.subplots(figsize=(18, 16), dpi=160, gridspec_kw=dict(left=0.1, right=0.9, bottom=0.08, top=0.98))
+    ax.yaxis.set_visible(False)
+    ax.xaxis.set_visible(False)
+    ax.set_axis_off()
+    # colors for different boards
+    prop_cycle = plt.rcParams['axes.prop_cycle']
+    colors = prop_cycle.by_key()['color']
+
+    for _, m in dfm.iterrows():
+        fc = colors[m['crate']]
+        alpha = 0.7
+        hatch = '//' if m['neighbor_crate'] >= 0 else ''
+        rec = Rectangle(xy=m[['anchor_x', 'anchor_y']].values, width=m['size_x'], height=m['size_y'],
+                        fc=mcolors.to_rgba(fc, alpha),
+                        ec='black', lw=1.0, hatch=hatch)
+        ax.add_patch(rec)
+        # annotation
+        if not pd.isnull(m['anno']):
+            fs = ANNO_FS[0] if m['name'].startswith('W') else ANNO_FS[1]
+            rx, ry = rec.get_xy()
+            cx = rx + rec.get_width() / 2.0
+            cy = ry + rec.get_height() / 2.0
+            ax.annotate(m['anno'], (cx, cy), color='k', fontsize=fs, ha='center', va='center')
+
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
+    ax.tick_params(labelsize=26)
+    ax.set_xlabel('X (mm)', fontsize=28)
+    ax.set_ylabel('Y (mm)', fontsize=28)
+
+    # color bar position
+    fig.savefig(os.path.join(output_dir, 'hycal_daq_boundaries.png'))
