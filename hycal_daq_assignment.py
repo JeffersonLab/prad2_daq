@@ -79,7 +79,7 @@ if __name__ == '__main__':
             dfd.loc[mask, 'link_slot'] = link_slot_real
             dfd.loc[mask, 'link_channel'] = i_mods % link_cap
             link_start += int(np.ceil(max(i_mods) / link_cap))
-
+    
     # sanity checks
     print(dfd[['crate', 'slot', 'channel']].max())
     print(dfd[['crate', 'slot', 'channel']].min())
