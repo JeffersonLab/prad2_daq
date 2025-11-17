@@ -57,7 +57,12 @@ if __name__ == '__main__':
         slot_cap = 16
         for mask in [pwo_mask & cr_mask, lg_mask & cr_mask]:
             i_mods = np.arange(np.sum(mask))
-            dfd.loc[mask, 'slot'] = slot_start + i_mods // slot_cap
+            #Shift all the slot number by 3 because the first fADC slot is 03 in all the VME crates.
+            slot_raw = slot_start + i_mods // slot_cap + 3
+            #Shift the slot number by another 2 if the current number is above 10 because slots 11 and 12
+            #are occupied by VTPs in the real crates.
+            slot_real = [x + 2 if x > 10 else x for x in slot_raw]
+            dfd.loc[mask, 'slot'] = slot_real
             dfd.loc[mask, 'channel'] = i_mods % slot_cap
             # print(dfd.loc[mask, ['crate', 'slot', 'channel']])
             slot_start += int(np.ceil(max(i_mods) / slot_cap))
@@ -69,7 +74,9 @@ if __name__ == '__main__':
                 continue
             mask = cr_mask & (dfd['neighbor_crate'] == nc)
             i_mods = np.arange(np.sum(mask))
-            dfd.loc[mask, 'link_slot'] = link_start + i_mods // link_start
+            link_slot_raw = link_start + i_mods // link_start + 3
+            link_slot_real = [l + 2 if l > 10 else l for l in link_slot_raw]
+            dfd.loc[mask, 'link_slot'] = link_slot_real
             dfd.loc[mask, 'link_channel'] = i_mods % link_cap
             link_start += int(np.ceil(max(i_mods) / link_cap))
 
