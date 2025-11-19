@@ -68,15 +68,13 @@ if __name__ == '__main__':
             slot_start += int(np.ceil(max(i_mods) / slot_cap))
         # assign optical links
         link_start = 0
-        link_cap = 16
+        link_cap = 32
         for nc in dfd.loc[cr_mask, 'neighbor_crate'].unique():
             if nc < 0:
                 continue
             mask = cr_mask & (dfd['neighbor_crate'] == nc)
             i_mods = np.arange(np.sum(mask))
-            link_slot_raw = link_start + i_mods // link_cap + 3
-            link_slot_real = [l + 2 if l > 10 else l for l in link_slot_raw]
-            dfd.loc[mask, 'link_slot'] = link_slot_real
+            dfd.loc[mask, 'link_slot'] = link_start + i_mods // link_cap
             dfd.loc[mask, 'link_channel'] = i_mods % link_cap
             link_start += int(np.ceil(max(i_mods) / link_cap))
     
