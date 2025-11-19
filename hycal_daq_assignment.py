@@ -57,7 +57,12 @@ if __name__ == '__main__':
         slot_cap = 16
         for mask in [pwo_mask & cr_mask, lg_mask & cr_mask]:
             i_mods = np.arange(np.sum(mask))
-            dfd.loc[mask, 'slot'] = slot_start + i_mods // slot_cap
+            #Shift all the slot number by 3 because the first fADC slot is 03 in all the VME crates.
+            slot_raw = slot_start + i_mods // slot_cap + 3
+            #Shift the slot number by another 2 if the current number is above 10 because slots 11 and 12
+            #are occupied by VTPs in the real crates.
+            slot_real = [x + 2 if x > 10 else x for x in slot_raw]
+            dfd.loc[mask, 'slot'] = slot_real
             dfd.loc[mask, 'channel'] = i_mods % slot_cap
             # print(dfd.loc[mask, ['crate', 'slot', 'channel']])
             slot_start += int(np.ceil(max(i_mods) / slot_cap))
@@ -69,15 +74,25 @@ if __name__ == '__main__':
                 continue
             mask = cr_mask & (dfd['neighbor_crate'] == nc)
             i_mods = np.arange(np.sum(mask))
-            dfd.loc[mask, 'link_slot'] = link_start + i_mods // link_start
+            dfd.loc[mask, 'link_slot'] = link_start + i_mods // link_cap
             dfd.loc[mask, 'link_channel'] = i_mods % link_cap
             link_start += int(np.ceil(max(i_mods) / link_cap))
-
+    
     # sanity checks
     print(dfd[['crate', 'slot', 'channel']].max())
     print(dfd[['crate', 'slot', 'channel']].min())
 
     dfd.rename(columns={'neighbor_crate': 'link_to_crate'}, inplace=True)
     data_cols = ['crate', 'slot', 'channel', 'VPCB.board', 'VPCB.connector', 'link_to_crate', 'link_slot', 'link_channel']
+    
+    # Manually add in the channels for the HyCal LMS and Veto Scintillator.
+    e = [-1,-1,-1,-1]
+    lms = pd.DataFrame({'name':['LMSP','LMS1','LMS2','LMS3'], 'crate':[6,6,6,6], 'slot':[20,20,21,21],'channel':[14,15,0,1],data_cols[3]:e,data_cols[4]:e,data_cols[5]:e,data_cols[6]:e,data_cols[7]:e})
+    veto = pd.DataFrame({'name':['V1','V2','V3','V4'],'crate':[6,6,6,6],'slot':[21,21,21,21],'channel':[2,3,4,5],data_cols[3]:e,data_cols[4]:e,data_cols[5]:e,data_cols[6]:e,data_cols[7]:e})
+
+    finDF = dfd[data_cols].reset_index()
+    fin = pd.concat([finDF, lms], ignore_index=True)
+    fin = pd.concat([fin, veto], ignore_index=True)
+    
     with open(os.path.join(args.database, 'hycal_daq_connections.txt'), 'w') as fo:
-        fo.write(dfd[data_cols].reset_index().to_string(index=False))
+        fo.write(fin.to_string(index=False))
