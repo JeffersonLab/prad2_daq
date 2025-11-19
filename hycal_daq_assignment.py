@@ -84,5 +84,15 @@ if __name__ == '__main__':
 
     dfd.rename(columns={'neighbor_crate': 'link_to_crate'}, inplace=True)
     data_cols = ['crate', 'slot', 'channel', 'VPCB.board', 'VPCB.connector', 'link_to_crate', 'link_slot', 'link_channel']
+    
+    # Manually add in the channels for the HyCal LMS and Veto Scintillator.
+    e = [-1,-1,-1,-1]
+    lms = pd.DataFrame({'name':['LMSP','LMS1','LMS2','LMS3'], 'crate':[6,6,6,6], 'slot':[20,20,21,21],'channel':[14,15,0,1],data_cols[3]:e,data_cols[4]:e,data_cols[5]:e,data_cols[6]:e,data_cols[7]:e})
+    veto = pd.DataFrame({'name':['V1','V2','V3','V4'],'crate':[6,6,6,6],'slot':[21,21,21,21],'channel':[2,3,4,5],data_cols[3]:e,data_cols[4]:e,data_cols[5]:e,data_cols[6]:e,data_cols[7]:e})
+
+    finDF = dfd[data_cols].reset_index()
+    fin = pd.concat([finDF, lms], ignore_index=True)
+    fin = pd.concat([fin, veto], ignore_index=True)
+    
     with open(os.path.join(args.database, 'hycal_daq_connections.txt'), 'w') as fo:
-        fo.write(dfd[data_cols].reset_index().to_string(index=False))
+        fo.write(fin.to_string(index=False))
